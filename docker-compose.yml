@@ -1,0 +1,210 @@
+networks:
+  auth-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.1.0/24
+          gateway: 192.168.1.1
+  analytics-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.2.0/24
+          gateway: 192.168.2.1
+  flags-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.3.0/24
+          gateway: 192.168.3.1
+  targeting-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.4.0/24
+          gateway: 192.168.4.1
+  evaluation-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.5.0/24
+          gateway: 192.168.5.1
+
+services:
+  analytics-service:
+    container_name: analytics-service
+    build:
+      context: analytics-service
+    ports:
+      - "8005:8005"
+    env_file:
+      - analytics-service/.env
+    networks:
+      - analytics-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8005/health',timeout=3).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    container_name: auth-service
+    build:
+      context: auth-service
+    ports:
+      - "8001:8001"
+    env_file:
+      - auth-service/.env
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+    networks:
+      - auth-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-auth:
+    image: postgres:13
+    container_name: postgres-auth
+    env_file:
+      - auth-service/.env
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data/
+    networks:
+      - auth-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  flags-service:
+    container_name: flags-service
+    build:
+      context: flags-service
+    ports:
+      - "8002:8002"
+    env_file:
+      - flags-service/.env
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      postgres-flags:
+        condition: service_healthy
+    networks:
+      - flags-network
+      - auth-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8002/health',timeout=3).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-flags:
+    image: postgres:13
+    container_name: postgres-flags
+    env_file:
+      - flags-service/.env
+    volumes:
+      - postgres_flags_data:/var/lib/postgresql/data/
+    networks:
+      - flags-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  targeting-service:
+    container_name: targeting-service
+    build:
+      context: targeting-service
+    ports:
+      - "8003:8003"
+    env_file:
+      - targeting-service/.env
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      postgres-targeting:
+        condition: service_healthy
+    networks:
+      - targeting-network
+      - auth-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8003/health',timeout=3).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-targeting:
+    image: postgres:13
+    container_name: postgres-targeting
+    env_file:
+      - targeting-service/.env
+    volumes:
+      - postgres_targeting_data:/var/lib/postgresql/data/
+    networks:
+      - targeting-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  evaluation-service:
+    container_name: evaluation-service
+    build:
+      context: evaluation-service
+    ports:
+      - "8004:8004"
+    env_file:
+      - evaluation-service/.env
+    volumes:
+      - /home/wsl/.aws:/root/.aws:ro        
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      flags-service:
+        condition: service_healthy
+      targeting-service:
+        condition: service_healthy
+      redis-evaluation:
+        condition: service_healthy
+    networks:
+      - targeting-network
+      - flags-network
+      - auth-network
+      - evaluation-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-evaluation:
+    image: redis:8.8.0-alpine
+    container_name: redis-evaluation
+    volumes:
+      - redis_evaluation_data:/data
+    networks:
+      - evaluation-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_auth_data:
+  postgres_flags_data:
+  postgres_targeting_data:
+  redis_evaluation_data:
