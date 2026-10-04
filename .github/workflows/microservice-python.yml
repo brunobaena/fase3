@@ -1,0 +1,85 @@
+name: Python Microservice CI
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        description: Directory containing the Python microservice.
+        required: true
+        type: string
+      ecr-repository:
+        description: ECR repository name for the microservice image.
+        required: true
+        type: string
+      sonar-project-key:
+        description: SonarCloud project key for the microservice.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-test:
+    name: Build & Unit Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ${{ inputs.service }}/requirements.txt
+
+      - name: Install Python dependencies
+        working-directory: ${{ inputs.service }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest
+
+      - name: Compile Python service
+        working-directory: ${{ inputs.service }}
+        run: python -m compileall -q app.py
+
+      - name: Run Python unit tests
+        working-directory: ${{ inputs.service }}
+        run: |
+          if find . -type f \( -name 'test_*.py' -o -name '*_test.py' \) -print -quit | grep -q .; then
+            python -m pytest
+          else
+            echo "No Python unit tests found; skipping pytest."
+          fi
+
+  lint:
+    name: Linter / Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Lint Python service
+        working-directory: ${{ inputs.service }}
+        run: |
+          python -m pip install ruff
+          ruff check app.py
+
+  security-and-container:
+    name: Security & Container Pipeline
+    needs:
+      - build-and-test
+      - lint
+    uses: ./.github/workflows/microservice-ci.yml
+    with:
+      service: ${{ inputs.service }}
+      ecr-repository: ${{ inputs.ecr-repository }}
+      sonar-project-key: ${{ inputs.sonar-project-key }}
+    secrets: inherit

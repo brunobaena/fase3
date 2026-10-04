@@ -1,0 +1,20 @@
+name: analytics-service
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  pipeline:
+    uses: ./.github/workflows/microservice-python.yml
+    with:
+      service: analytics-service
+      ecr-repository: fiap/analytics-service
+      sonar-project-key: brunobaena-analytics-service
+    secrets: inherit

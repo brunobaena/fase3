@@ -1,0 +1,20 @@
+name: targeting-service
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  pipeline:
+    uses: ./.github/workflows/microservice-python.yml
+    with:
+      service: targeting-service
+      ecr-repository: fiap/targeting-service
+      sonar-project-key: brunobaena-targeting-service
+    secrets: inherit

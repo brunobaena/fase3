@@ -1,0 +1,74 @@
+name: Go Microservice CI
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        description: Directory containing the Go microservice.
+        required: true
+        type: string
+      ecr-repository:
+        description: ECR repository name for the microservice image.
+        required: true
+        type: string
+      sonar-project-key:
+        description: SonarCloud project key for the microservice.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-test:
+    name: Build & Unit Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ inputs.service }}/go.mod
+          cache-dependency-path: ${{ inputs.service }}/go.mod
+
+      - name: Build Go service
+        working-directory: ${{ inputs.service }}
+        run: go build ./...
+
+      - name: Run Go unit tests
+        working-directory: ${{ inputs.service }}
+        run: go test ./...
+
+  lint:
+    name: Linter / Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ inputs.service }}/go.mod
+          cache-dependency-path: ${{ inputs.service }}/go.mod
+
+      - name: Lint Go service
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64.8
+          working-directory: ${{ inputs.service }}
+
+  security-and-container:
+    name: Security & Container Pipeline
+    needs:
+      - build-and-test
+      - lint
+    uses: ./.github/workflows/microservice-ci.yml
+    with:
+      service: ${{ inputs.service }}
+      ecr-repository: ${{ inputs.ecr-repository }}
+      sonar-project-key: ${{ inputs.sonar-project-key }}
+    secrets: inherit

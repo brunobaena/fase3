@@ -1,0 +1,20 @@
+name: flags-service
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  pipeline:
+    uses: ./.github/workflows/microservice-python.yml
+    with:
+      service: flags-service
+      ecr-repository: fiap/flags-service
+      sonar-project-key: brunobaena-flags-service
+    secrets: inherit

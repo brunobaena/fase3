@@ -1,0 +1,20 @@
+name: auth-service
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  pipeline:
+    uses: ./.github/workflows/microservice-go.yml
+    with:
+      service: auth-service
+      ecr-repository: fiap/auth-service
+      sonar-project-key: brunobaena-auth-service
+    secrets: inherit

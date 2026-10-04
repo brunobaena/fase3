@@ -1,0 +1,20 @@
+name: evaluation-service
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  pipeline:
+    uses: ./.github/workflows/microservice-go.yml
+    with:
+      service: evaluation-service
+      ecr-repository: fiap/evaluation-service
+      sonar-project-key: brunobaena-evaluation-service
+    secrets: inherit
