@@ -1,3 +1,15 @@
+variable "argocd_namespace" {
+  description = "Namespace de instalacao do ArgoCD"
+  type        = string
+  default     = "argocd"
+}
+
+variable "argocd_chart_version" {
+  description = "Versao fixa do chart Helm oficial do ArgoCD"
+  type        = string
+  default     = "10.9.2"
+}
+
 variable "aws_region" {
   description = "Regiao AWS"
   type        = string

@@ -1,3 +1,15 @@
+output "argocd_namespace" {
+  value = module.argocd.namespace
+}
+
+output "argocd_port_forward_command" {
+  value = module.argocd.port_forward_command
+}
+
+output "argocd_initial_password_command" {
+  value = module.argocd.initial_password_command
+}
+
 output "vpc_id" {
   value = module.networking.vpc_id
 }

@@ -9,22 +9,22 @@ module "networking" {
 module "eks" {
   source = "./modules/eks"
 
-  project_name        = var.project_name
-  cluster_name        = var.eks_cluster_name
-  cluster_version     = var.eks_cluster_version
-  vpc_id              = module.networking.vpc_id
-  subnet_ids          = module.networking.public_subnet_ids
-  node_instance_type  = var.eks_node_instance_type
-  node_desired        = var.eks_node_desired
-  node_min            = var.eks_node_min
-  node_max            = var.eks_node_max
+  project_name       = var.project_name
+  cluster_name       = var.eks_cluster_name
+  cluster_version    = var.eks_cluster_version
+  vpc_id             = module.networking.vpc_id
+  subnet_ids         = module.networking.public_subnet_ids
+  node_instance_type = var.eks_node_instance_type
+  node_desired       = var.eks_node_desired
+  node_min           = var.eks_node_min
+  node_max           = var.eks_node_max
 }
 
 module "databases" {
   source = "./modules/databases"
 
   project_name                  = var.project_name
-  vpc_id                         = module.networking.vpc_id
+  vpc_id                        = module.networking.vpc_id
   private_subnet_ids            = module.networking.private_subnet_ids
   rds_instance_class            = var.rds_instance_class
   rds_allocated_storage         = var.rds_allocated_storage
@@ -44,4 +44,13 @@ module "ecr" {
   source = "./modules/ecr"
 
   repository_names = var.ecr_repositories
+}
+
+module "argocd" {
+  source = "./modules/argocd"
+
+  namespace     = var.argocd_namespace
+  chart_version = var.argocd_chart_version
+
+  depends_on = [module.eks]
 }
