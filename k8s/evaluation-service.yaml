@@ -1,0 +1,380 @@
+# =============================================================================
+# MANIFESTO KUBERNETES — evaluation-service
+# Repositório: brunobaena/fase2-evaluation-service
+# Cluster EKS: fase2-eks  |  Região: us-east-2  |  Account: 997739472885
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 1. NAMESPACE
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: evaluation
+  labels:
+    app.kubernetes.io/part-of: togglemaster
+    env: production
+
+---
+# -----------------------------------------------------------------------------
+# 2. SERVICE ACCOUNT
+#    Pod usa esta SA para acessar a API do Kubernetes (via token montado
+#    automaticamente em /var/run/secrets/kubernetes.io/serviceaccount/).
+#    O initContainer lê o MASTER_KEY do Secret "auth-service-secret"
+#    no namespace "auth" sem precisar de credenciais AWS adicionais.
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: evaluation-service-sa
+  namespace: evaluation
+  labels:
+    app: evaluation-service
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::997739472885:role/ToggleMaster-Evaluation-Role"
+
+---
+# -----------------------------------------------------------------------------
+# 3. RBAC — permite ao initContainer ler o Secret "auth-service-secret"
+#    no namespace "auth" (onde o ESO já sincronizou o MASTER_KEY).
+# -----------------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: read-auth-master-key
+  namespace: auth
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["auth-service-secret"]
+    verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: evaluation-read-auth-master-key
+  namespace: auth
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: read-auth-master-key
+subjects:
+  - kind: ServiceAccount
+    name: evaluation-service-sa
+    namespace: evaluation
+
+---
+# -----------------------------------------------------------------------------
+# 4. CONFIGMAP — variáveis NÃO-sensíveis
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: evaluation-service-config
+  namespace: evaluation
+  labels:
+    app: evaluation-service
+data:
+  PORT: "8004"
+  AWS_REGION: "us-east-2"
+  AWS_SQS_URL: "https://sqs.us-east-2.amazonaws.com/997739472885/toogle-master-queue"
+  REDIS_URL: "redis://evaluation-cache.gdut1x.0001.use2.cache.amazonaws.com:6379"
+  FLAG_SERVICE_URL: "http://flags-service.flags.svc.cluster.local:8002"
+  TARGETING_SERVICE_URL: "http://targeting-service.targeting.svc.cluster.local:8003"
+
+---
+# -----------------------------------------------------------------------------
+# 5. DEPLOYMENT
+# -----------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: evaluation-service
+  namespace: evaluation
+  labels:
+    app: evaluation-service
+    version: "1.0.0"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: evaluation-service
+  template:
+    metadata:
+      labels:
+        app: evaluation-service
+        version: "1.0.0"
+    spec:
+      serviceAccountName: evaluation-service-sa
+
+      # -----------------------------------------------------------------------------
+      # Volume compartilhado entre initContainer e container principal.
+      # O initContainer grava a SERVICE_API_KEY; o container principal lê.
+      # -----------------------------------------------------------------------------
+      volumes:
+        - name: service-secrets
+          emptyDir: {}
+
+      # -----------------------------------------------------------------------------
+      # INIT CONTAINER
+      # Fluxo:
+      #   1. Lê MASTER_KEY do K8s Secret "auth-service-secret" (namespace auth)
+      #      via API interna do Kubernetes, usando o token da ServiceAccount.
+      #   2. Aguarda o auth-service estar saudável.
+      #   3. Chama POST /admin/keys para criar uma chave de serviço.
+      #   4. Grava o token em /etc/service-secrets/service_api_key.
+      # -----------------------------------------------------------------------------
+      initContainers:
+        - name: fetch-service-api-key
+          image: alpine:3.20
+          volumeMounts:
+            - name: service-secrets
+              mountPath: /etc/service-secrets
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+
+              echo "📦 Instalando dependências (curl, jq)..."
+              apk add --no-cache curl jq > /dev/null 2>&1
+
+              # ── Credenciais do Kubernetes (montadas automaticamente) ──
+              KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              KUBE_CA=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+              KUBE_API="https://kubernetes.default.svc"
+
+              # ── Passo 1: Obter MASTER_KEY do Secret do auth-service ──
+              echo "🔐 Obtendo MASTER_KEY do Secret 'auth-service-secret'..."
+
+              MASTER_KEY=$(curl -sf \
+                --cacert "$KUBE_CA" \
+                -H "Authorization: Bearer $KUBE_TOKEN" \
+                "$KUBE_API/api/v1/namespaces/auth/secrets/auth-service-secret" \
+                | jq -r '.data.MASTER_KEY' | base64 -d)
+
+              if [ -z "$MASTER_KEY" ]; then
+                echo "❌ MASTER_KEY não encontrado no Secret 'auth-service-secret'"
+                exit 1
+              fi
+              echo "✅ MASTER_KEY obtido"
+
+              # ── Passo 2: Aguardar auth-service estar disponível ──
+              echo "⏳ Aguardando auth-service ficar pronto..."
+              until curl -sf http://auth-service.auth.svc.cluster.local:8001/health > /dev/null 2>&1; do
+                echo "   auth-service ainda não está pronto. Aguardando 5s..."
+                sleep 5
+              done
+              echo "✅ auth-service disponível"
+
+              # ── Passo 3: Criar SERVICE_API_KEY via API do auth-service ──
+              # Usa timestamp no nome para garantir idempotência entre reinicios.
+              KEY_NAME="evaluation-service-key-$(date +%s)"
+              echo "🔑 Criando chave de serviço ($KEY_NAME)..."
+
+              RESPONSE=$(curl -sf -X POST \
+                http://auth-service.auth.svc.cluster.local:8001/admin/keys \
+                -H "Authorization: Bearer $MASTER_KEY" \
+                -H "Content-Type: application/json" \
+                -d "{\"name\": \"$KEY_NAME\"}")
+
+              SERVICE_KEY=$(echo "$RESPONSE" | jq -r '.key // empty')
+
+              if [ -z "$SERVICE_KEY" ]; then
+                echo "❌ Falha ao criar chave. Resposta do auth-service: $RESPONSE"
+                exit 1
+              fi
+
+              # ── Passo 4: Gravar no volume compartilhado ──
+              echo -n "$SERVICE_KEY" > /etc/service-secrets/service_api_key
+              echo "✅ SERVICE_API_KEY gravado em /etc/service-secrets/service_api_key"
+
+      # -----------------------------------------------------------------------------
+      # CONTAINER PRINCIPAL
+      # O command exporta SERVICE_API_KEY a partir do arquivo gravado pelo
+      # initContainer antes de iniciar o binário da aplicação.
+      # -----------------------------------------------------------------------------
+      containers:
+        - name: evaluation-service
+          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/evaluation-service:1.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8004
+              protocol: TCP
+
+          # Lê SERVICE_API_KEY do arquivo gravado pelo initContainer
+          # e inicia o binário com a variável já exportada no ambiente.
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              export SERVICE_API_KEY=$(cat /etc/service-secrets/service_api_key)
+              exec ./evaluation-service
+
+          volumeMounts:
+            - name: service-secrets
+              mountPath: /etc/service-secrets
+              readOnly: true
+
+          # -----------------------------------------------------------------------------
+          # Variáveis NÃO-sensíveis — ConfigMap
+          # -----------------------------------------------------------------------------
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: evaluation-service-config
+                  key: PORT
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: evaluation-service-config
+                  key: AWS_REGION
+            - name: AWS_SQS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: evaluation-service-config
+                  key: AWS_SQS_URL
+            - name: REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: evaluation-service-config
+                  key: REDIS_URL
+            - name: FLAG_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: evaluation-service-config
+                  key: FLAG_SERVICE_URL
+            - name: TARGETING_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: evaluation-service-config
+                  key: TARGETING_SERVICE_URL
+
+          # -----------------------------------------------------------------------------
+          # Requests e Limits
+          # -----------------------------------------------------------------------------
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+          # -----------------------------------------------------------------------------
+          # ReadinessProbe — o pod só recebe tráfego quando /health retornar 200
+          # -----------------------------------------------------------------------------
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+            successThreshold: 1
+
+          # -----------------------------------------------------------------------------
+          # LivenessProbe — reinicia o container se /health parar de responder
+          # -----------------------------------------------------------------------------
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 3
+
+      restartPolicy: Always
+
+---
+# -----------------------------------------------------------------------------
+# 6. SERVICE — ClusterIP
+# DNS interno: http://evaluation-service.evaluation.svc.cluster.local:8004
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: evaluation-service
+  namespace: evaluation
+  labels:
+    app: evaluation-service
+spec:
+  type: ClusterIP
+  selector:
+    app: evaluation-service
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8004
+      targetPort: 8004
+
+---
+# -----------------------------------------------------------------------------
+# 7. INGRESS
+# -----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: evaluation-service-ingress
+  namespace: evaluation
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /evaluation(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: evaluation-service
+                port:
+                  number: 8004
+
+---
+# -----------------------------------------------------------------------------
+# 8. HPA — HorizontalPodAutoscaler por CPU
+#    Requer metrics-server no cluster. Escala com base no % médio de uso
+#    de CPU dos pods em relação ao "requests.cpu" definido no Deployment.
+# -----------------------------------------------------------------------------
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: evaluation-service-hpa
+  namespace: evaluation
+  labels:
+    app: evaluation-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: evaluation-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
