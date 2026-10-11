@@ -15,6 +15,11 @@ on:
         description: SonarCloud project key for the microservice.
         required: true
         type: string
+      sonar-extra-args:
+        description: Additional SonarCloud scanner arguments (e.g. sonar.python.version).
+        required: false
+        type: string
+        default: ''
     secrets:
       AWS_ROLE_TO_ASSUME:
         description: IAM role ARN assumed by GitHub Actions through OIDC for pushes to main.
@@ -46,6 +51,8 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.projectKey=${{ inputs.sonar-project-key }}
+            -Dsonar.branch.name=master
+            ${{ inputs.sonar-extra-args }}
             -Dsonar.qualitygate.wait=true
 
       - name: Run Trivy dependency scan (SCA)

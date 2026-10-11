@@ -82,4 +82,5 @@ jobs:
       service: ${{ inputs.service }}
       ecr-repository: ${{ inputs.ecr-repository }}
       sonar-project-key: ${{ inputs.sonar-project-key }}
+      sonar-extra-args: -Dsonar.python.version=3.14
     secrets: inherit
