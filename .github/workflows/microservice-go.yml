@@ -34,13 +34,17 @@ jobs:
           go-version-file: ${{ inputs.service }}/go.mod
           cache-dependency-path: ${{ inputs.service }}/go.mod
 
+      - name: Verify dependencies
+        working-directory: ${{ inputs.service }}
+        run: go mod verify
+
       - name: Build Go service
         working-directory: ${{ inputs.service }}
-        run: go build ./...
+        run: go build -mod=readonly -v ./...
 
       - name: Run Go unit tests
         working-directory: ${{ inputs.service }}
-        run: go test ./...
+        run: go test -mod=readonly -v ./...
 
   lint:
     name: Linter / Static Analysis
