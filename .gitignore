@@ -1,5 +1,7 @@
 .env
 venv/
+.idea/
+*.iml
 
 # Terraform
 **/.terraform/
@@ -9,4 +11,3 @@ venv/
 *.tfplan
 crash.log
 crash.*.log
-
