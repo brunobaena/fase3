@@ -12,6 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 FROM python:3.14.6-slim
 
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+
 RUN addgroup --system app && adduser --system --ingroup app app
 
 COPY --from=builder /venv /venv
