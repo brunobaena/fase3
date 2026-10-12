@@ -92,6 +92,16 @@ variable "redis_engine_version" {
   default = "7.1"
 }
 
+variable "github_org" {
+  description = "Organizacao/dono do repositorio GitHub autorizado a assumir a role via OIDC"
+  type        = string
+}
+
+variable "github_repo" {
+  description = "Nome do repositorio GitHub autorizado a assumir a role via OIDC"
+  type        = string
+}
+
 variable "ecr_repositories" {
   description = "Lista de nomes dos repositorios ECR"
   type        = list(string)

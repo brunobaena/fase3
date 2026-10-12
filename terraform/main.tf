@@ -46,6 +46,15 @@ module "ecr" {
   repository_names = var.ecr_repositories
 }
 
+module "github_actions_oidc" {
+  source = "./modules/github-actions-oidc"
+
+  project_name = var.project_name
+  github_org   = var.github_org
+  github_repo  = var.github_repo
+  aws_region   = var.aws_region
+}
+
 module "argocd" {
   source = "./modules/argocd"
 

@@ -73,3 +73,8 @@ output "sqs_queue_url" {
 output "ecr_repository_urls" {
   value = module.ecr.repository_urls
 }
+
+output "github_actions_role_arn" {
+  description = "ARN a ser configurado no secret AWS_ROLE_TO_ASSUME do GitHub Actions"
+  value       = module.github_actions_oidc.role_arn
+}
