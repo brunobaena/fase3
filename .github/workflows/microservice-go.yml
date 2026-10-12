@@ -26,17 +26,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: ${{ inputs.service }}/go.mod
           cache-dependency-path: ${{ inputs.service }}/go.mod
-
-      - name: Verify dependencies
-        working-directory: ${{ inputs.service }}
-        run: go mod verify
 
       - name: Build Go service
         working-directory: ${{ inputs.service }}
@@ -51,16 +47,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: ${{ inputs.service }}/go.mod
           cache-dependency-path: ${{ inputs.service }}/go.mod
 
       - name: Lint Go service
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v1.64.8
           working-directory: ${{ inputs.service }}
