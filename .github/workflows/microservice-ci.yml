@@ -21,12 +21,15 @@ on:
         type: string
         default: ''
     secrets:
-      AWS_ROLE_TO_ASSUME:
-        description: IAM role ARN assumed by GitHub Actions through OIDC for pushes to main.
+      AWS_ROLE_ECR_PUSH:
+        description: IAM role ARN (push-only to ECR) assumed by GitHub Actions through OIDC for pushes to main.
         required: false
       SONAR_TOKEN:
         description: SonarCloud token used to publish analysis.
         required: true
+
+env:
+  AWS_REGION: us-east-2
 
 permissions:
   contents: read
@@ -101,8 +104,8 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-2
+          role-to-assume: ${{ secrets.AWS_ROLE_ECR_PUSH }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Log in to Amazon ECR
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

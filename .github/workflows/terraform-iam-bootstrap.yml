@@ -1,0 +1,117 @@
+name: Terraform IAM Bootstrap
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-2
+  TF_VERSION: "1.10.5"
+  WORKING_DIR: terraform-iam-bootstrap
+  TF_VAR_github_org: ${{ github.repository_owner }}
+  TF_VAR_github_repo: ${{ github.event.repository.name }}
+
+concurrency:
+  group: terraform-iam-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  bootstrap-iam:
+    name: 🔐 Criar OIDC Provider + AWS_ROLE_TERRAFORM
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v7
+
+      - name: 🔧 Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: 🔑 Configure AWS Credentials (bootstrap, chave estatica)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.BOOTSTRAP_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.BOOTSTRAP_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 🎯 Format Check
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform fmt -check -recursive
+
+      - name: ⚙️ Init
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform init
+
+      - name: ✅ Validate
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform validate
+
+      - name: 🔎 Importar OIDC Provider existente (se necessario)
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          set -e
+          PROVIDER_ARN=$(aws iam list-open-id-connect-providers \
+            --query "OpenIDConnectProviderList[?contains(Arn, 'token.actions.githubusercontent.com')].Arn" \
+            --output text)
+
+          if [ -n "$PROVIDER_ARN" ] && [ "$PROVIDER_ARN" != "None" ]; then
+            echo "OIDC provider ja existe na conta AWS: $PROVIDER_ARN"
+            if terraform state list 2>/dev/null | grep -qx 'aws_iam_openid_connect_provider.github_actions'; then
+              echo "Ja esta presente no state do Terraform, nada a fazer."
+            else
+              echo "Nao esta no state ainda. Importando..."
+              terraform import aws_iam_openid_connect_provider.github_actions "$PROVIDER_ARN"
+            fi
+          else
+            echo "OIDC provider ainda nao existe. O Terraform ira cria-lo no apply."
+          fi
+
+      - name: 🔎 Importar IAM Role existente (se necessario)
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          set -e
+          ROLE_NAME="togglemaster-terraform-role"
+          if aws iam get-role --role-name "$ROLE_NAME" >/dev/null 2>&1; then
+            echo "Role $ROLE_NAME ja existe na conta AWS."
+            if terraform state list 2>/dev/null | grep -qx 'aws_iam_role.terraform'; then
+              echo "Ja esta presente no state do Terraform, nada a fazer."
+            else
+              echo "Nao esta no state ainda. Importando..."
+              terraform import aws_iam_role.terraform "$ROLE_NAME"
+            fi
+          else
+            echo "Role ainda nao existe. O Terraform ira cria-la no apply."
+          fi
+
+      - name: 📋 Plan
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform plan -out=tfplan
+
+      - name: 🚀 Apply
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform apply -auto-approve tfplan
+
+      - name: 📊 Output
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform output
+
+      - name: 💾 Backup do state (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-iam-bootstrap-state
+          path: ${{ env.WORKING_DIR }}/terraform.tfstate
+          retention-days: 90
+
+      - name: 🔐 Atualizar secret AWS_ROLE_TERRAFORM
+        working-directory: ${{ env.WORKING_DIR }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          set -e
+          ROLE_ARN=$(terraform output -raw terraform_role_arn)
+          echo "Atualizando secret AWS_ROLE_TERRAFORM com a role: $ROLE_ARN"
+          gh secret set AWS_ROLE_TERRAFORM --repo "${{ github.repository }}" --body "$ROLE_ARN"
