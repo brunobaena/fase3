@@ -79,7 +79,7 @@ variable "rds_allocated_storage" {
 variable "rds_engine_version" {
   description = "Versao do PostgreSQL"
   type        = string
-  default     = "16.4"
+  default     = "16"
 }
 
 variable "redis_node_type" {
