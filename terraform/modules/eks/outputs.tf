@@ -33,3 +33,7 @@ output "analytics_role_arn" {
 output "evaluation_role_arn" {
   value = aws_iam_role.evaluation.arn
 }
+
+output "keda_role_arn" {
+  value = aws_iam_role.keda.arn
+}

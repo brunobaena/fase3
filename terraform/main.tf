@@ -63,3 +63,19 @@ module "argocd" {
 
   depends_on = [module.eks]
 }
+
+module "external_secrets" {
+  source = "./modules/external-secrets"
+
+  role_arn = module.eks.eso_role_arn
+
+  depends_on = [module.eks]
+}
+
+module "keda" {
+  source = "./modules/keda"
+
+  role_arn = module.eks.keda_role_arn
+
+  depends_on = [module.eks]
+}

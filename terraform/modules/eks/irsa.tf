@@ -132,3 +132,42 @@ resource "aws_iam_role_policy_attachment" "evaluation" {
   role       = aws_iam_role.evaluation.name
   policy_arn = aws_iam_policy.evaluation.arn
 }
+
+# --- IRSA: KEDA Operator (leitura do queueDepth da fila SQS) ---
+resource "aws_iam_role" "keda" {
+  name = "KEDA-SQS-Role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Federated = aws_iam_openid_connect_provider.eks.arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "${local.oidc_provider}:sub" = "system:serviceaccount:keda:keda-operator"
+          "${local.oidc_provider}:aud" = "sts.amazonaws.com"
+        }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_policy" "keda" {
+  name = "KEDA-SQS-ReadPolicy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid      = "KEDASQSRead"
+      Effect   = "Allow"
+      Action   = ["sqs:GetQueueAttributes", "sqs:GetQueueUrl"]
+      Resource = "arn:aws:sqs:us-east-2:${local.account_id}:toogle-master-queue"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "keda" {
+  role       = aws_iam_role.keda.name
+  policy_arn = aws_iam_policy.keda.arn
+}
