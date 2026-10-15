@@ -119,7 +119,10 @@ jobs:
 
       - name: ⚙️ Init
         working-directory: ${{ env.WORKING_DIR }}
-        run: terraform init
+        run: |
+          set -e
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          terraform init -backend-config="bucket=togglemaster-terraform-state-${ACCOUNT_ID}"
 
       - name: ✅ Validate
         working-directory: ${{ env.WORKING_DIR }}

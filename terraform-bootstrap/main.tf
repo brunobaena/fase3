@@ -13,11 +13,20 @@ provider "aws" {
   region = var.aws_region
 }
 
+data "aws_caller_identity" "current" {}
+
+locals {
+  # Nomes de bucket S3 sao unicos globalmente entre TODAS as contas AWS,
+  # por isso o account id e usado como sufixo para evitar colisao com
+  # buckets de mesmo nome criados por outras contas.
+  bucket_name = "${var.bucket_name}-${data.aws_caller_identity.current.account_id}"
+}
+
 resource "aws_s3_bucket" "tfstate" {
-  bucket = var.bucket_name
+  bucket = local.bucket_name
 
   tags = {
-    Name    = var.bucket_name
+    Name    = local.bucket_name
     Project = "togglemaster"
   }
 }
