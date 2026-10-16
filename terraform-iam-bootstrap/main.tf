@@ -28,6 +28,12 @@ resource "aws_iam_openid_connect_provider" "github_actions" {
   thumbprint_list = [data.tls_certificate.github_actions.certificates[0].sha1_fingerprint]
 }
 
+locals {
+  github_sub_legacy   = "repo:${var.github_org}/${var.github_repo}:*"
+  github_sub_by_id    = var.github_owner_id != "" && var.github_repo_id != "" ? "repo:${var.github_org}@${var.github_owner_id}/${var.github_repo}@${var.github_repo_id}:*" : ""
+  github_sub_patterns = compact([local.github_sub_legacy, local.github_sub_by_id])
+}
+
 # --- IAM Role usada pela pipeline terraform-ci.yml para aplicar o Terraform principal ---
 resource "aws_iam_role" "terraform" {
   name = "${var.project_name}-terraform-role"
@@ -43,7 +49,7 @@ resource "aws_iam_role" "terraform" {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
         }
         StringLike = {
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}/${var.github_repo}:*"
+          "token.actions.githubusercontent.com:sub" = local.github_sub_patterns
         }
       }
     }]

@@ -13,11 +13,23 @@ variable "project_name" {
 variable "github_org" {
   description = "Organizacao/dono do repositorio GitHub autorizado a assumir a role via OIDC"
   type        = string
-  default     = "brunobaena"
+  default     = ""
 }
 
 variable "github_repo" {
   description = "Nome do repositorio GitHub autorizado a assumir a role via OIDC"
   type        = string
-  default     = "fase3"
+  default     = ""
+}
+
+variable "github_owner_id" {
+  description = "ID numerico do owner GitHub (claim sub do token OIDC: repo:<org>@<owner_id>/<repo>@<repo_id>)"
+  type        = string
+  default     = ""
+}
+
+variable "github_repo_id" {
+  description = "ID numerico do repositorio GitHub (claim sub do token OIDC: repo:<org>@<owner_id>/<repo>@<repo_id>)"
+  type        = string
+  default     = ""
 }

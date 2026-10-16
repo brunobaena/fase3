@@ -49,10 +49,12 @@ module "ecr" {
 module "github_actions_oidc" {
   source = "./modules/github-actions-oidc"
 
-  project_name = var.project_name
-  github_org   = var.github_org
-  github_repo  = var.github_repo
-  aws_region   = var.aws_region
+  project_name    = var.project_name
+  github_org      = var.github_org
+  github_repo     = var.github_repo
+  github_owner_id = var.github_owner_id
+  github_repo_id  = var.github_repo_id
+  aws_region      = var.aws_region
 }
 
 module "argocd" {

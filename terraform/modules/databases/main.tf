@@ -71,21 +71,21 @@ resource "aws_elasticache_subnet_group" "main" {
 }
 
 resource "aws_db_instance" "auth" {
-  identifier                   = "auth-db"
-  engine                       = "postgres"
-  engine_version               = var.rds_engine_version
-  instance_class               = var.rds_instance_class
-  allocated_storage            = var.rds_allocated_storage
-  storage_type                 = "gp3"
-  db_name                      = "postgres"
-  username                     = "postgres"
-  manage_master_user_password  = true
-  db_subnet_group_name         = aws_db_subnet_group.main.name
-  vpc_security_group_ids       = [aws_security_group.rds.id]
-  publicly_accessible          = false
-  multi_az                     = false
-  backup_retention_period      = 1
-  skip_final_snapshot          = true
+  identifier                  = "auth-db"
+  engine                      = "postgres"
+  engine_version              = var.rds_engine_version
+  instance_class              = var.rds_instance_class
+  allocated_storage           = var.rds_allocated_storage
+  storage_type                = "gp3"
+  db_name                     = "postgres"
+  username                    = "postgres"
+  manage_master_user_password = true
+  db_subnet_group_name        = aws_db_subnet_group.main.name
+  vpc_security_group_ids      = [aws_security_group.rds.id]
+  publicly_accessible         = false
+  multi_az                    = false
+  backup_retention_period     = 1
+  skip_final_snapshot         = true
 
   tags = {
     Name    = "auth-db"
@@ -94,21 +94,21 @@ resource "aws_db_instance" "auth" {
 }
 
 resource "aws_db_instance" "flags" {
-  identifier                   = "flags-db"
-  engine                       = "postgres"
-  engine_version               = var.rds_engine_version
-  instance_class               = var.rds_instance_class
-  allocated_storage            = var.rds_allocated_storage
-  storage_type                 = "gp3"
-  db_name                      = "postgres"
-  username                     = "postgres"
-  manage_master_user_password  = true
-  db_subnet_group_name         = aws_db_subnet_group.main.name
-  vpc_security_group_ids       = [aws_security_group.rds.id]
-  publicly_accessible          = false
-  multi_az                     = false
-  backup_retention_period      = 1
-  skip_final_snapshot          = true
+  identifier                  = "flags-db"
+  engine                      = "postgres"
+  engine_version              = var.rds_engine_version
+  instance_class              = var.rds_instance_class
+  allocated_storage           = var.rds_allocated_storage
+  storage_type                = "gp3"
+  db_name                     = "postgres"
+  username                    = "postgres"
+  manage_master_user_password = true
+  db_subnet_group_name        = aws_db_subnet_group.main.name
+  vpc_security_group_ids      = [aws_security_group.rds.id]
+  publicly_accessible         = false
+  multi_az                    = false
+  backup_retention_period     = 1
+  skip_final_snapshot         = true
 
   tags = {
     Name    = "flags-db"
@@ -117,21 +117,21 @@ resource "aws_db_instance" "flags" {
 }
 
 resource "aws_db_instance" "targeting" {
-  identifier                   = "targeting-db"
-  engine                       = "postgres"
-  engine_version               = var.rds_engine_version
-  instance_class               = var.rds_instance_class
-  allocated_storage            = var.rds_allocated_storage
-  storage_type                 = "gp3"
-  db_name                      = "postgres"
-  username                     = "postgres"
-  manage_master_user_password  = true
-  db_subnet_group_name         = aws_db_subnet_group.main.name
-  vpc_security_group_ids       = [aws_security_group.rds.id]
-  publicly_accessible          = false
-  multi_az                     = false
-  backup_retention_period      = 1
-  skip_final_snapshot          = true
+  identifier                  = "targeting-db"
+  engine                      = "postgres"
+  engine_version              = var.rds_engine_version
+  instance_class              = var.rds_instance_class
+  allocated_storage           = var.rds_allocated_storage
+  storage_type                = "gp3"
+  db_name                     = "postgres"
+  username                    = "postgres"
+  manage_master_user_password = true
+  db_subnet_group_name        = aws_db_subnet_group.main.name
+  vpc_security_group_ids      = [aws_security_group.rds.id]
+  publicly_accessible         = false
+  multi_az                    = false
+  backup_retention_period     = 1
+  skip_final_snapshot         = true
 
   tags = {
     Name    = "targeting-db"

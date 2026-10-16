@@ -48,7 +48,7 @@ variable "eks_cluster_version" {
 
 variable "eks_node_instance_type" {
   type    = string
-  default = "t3.small"
+  default = "t3.medium"
 }
 
 variable "eks_node_desired" {
@@ -102,6 +102,16 @@ variable "github_repo" {
   type        = string
 }
 
+variable "github_owner_id" {
+  description = "ID numerico do owner GitHub (claim sub do token OIDC: repo:<org>@<owner_id>/<repo>@<repo_id>)"
+  type        = string
+}
+
+variable "github_repo_id" {
+  description = "ID numerico do repositorio GitHub (claim sub do token OIDC: repo:<org>@<owner_id>/<repo>@<repo_id>)"
+  type        = string
+}
+
 variable "ecr_repositories" {
   description = "Lista de nomes dos repositorios ECR"
   type        = list(string)
@@ -113,3 +123,4 @@ variable "ecr_repositories" {
     "fiap/analytics-service",
   ]
 }
+

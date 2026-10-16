@@ -12,6 +12,8 @@ env:
   WORKING_DIR: terraform-iam-bootstrap
   TF_VAR_github_org: ${{ github.repository_owner }}
   TF_VAR_github_repo: ${{ github.event.repository.name }}
+  TF_VAR_github_owner_id: ${{ github.repository_owner_id }}
+  TF_VAR_github_repo_id: ${{ github.repository_id }}
 
 concurrency:
   group: terraform-iam-bootstrap

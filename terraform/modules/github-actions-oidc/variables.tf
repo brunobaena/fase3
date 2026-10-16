@@ -13,6 +13,16 @@ variable "github_repo" {
   type        = string
 }
 
+variable "github_owner_id" {
+  description = "ID numerico do owner GitHub (claim sub do token OIDC: repo:<org>@<owner_id>/<repo>@<repo_id>)"
+  type        = string
+}
+
+variable "github_repo_id" {
+  description = "ID numerico do repositorio GitHub (claim sub do token OIDC: repo:<org>@<owner_id>/<repo>@<repo_id>)"
+  type        = string
+}
+
 variable "aws_region" {
   description = "Regiao AWS dos repositorios ECR"
   type        = string
