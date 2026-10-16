@@ -102,7 +102,7 @@ spec:
 
       containers:
         - name: auth-service
-          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/auth-service:1.0
+          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/auth-service:sha-90aa102e1912ddce97f3d51a6ba42555a3442dfe
           imagePullPolicy: Always
           ports:
             - containerPort: 8001
