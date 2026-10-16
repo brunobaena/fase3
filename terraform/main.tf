@@ -100,3 +100,9 @@ module "reloader" {
 
   depends_on = [module.eks]
 }
+
+module "metrics_server" {
+  source = "./modules/metrics-server"
+
+  depends_on = [module.eks]
+}

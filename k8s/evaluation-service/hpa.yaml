@@ -1,4 +1,5 @@
-# HPA por CPU. Requer metrics-server no cluster (nao e provisionado pelo Terraform).
+# HPA por CPU. Depende do metrics-server (instalado pelo Terraform em terraform/modules/metrics-server).
+# A utilizacao e calculada sobre resources.requests.cpu do container (definido no deployment.yaml).
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
