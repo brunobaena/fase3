@@ -123,6 +123,8 @@ jobs:
       TF_VAR_github_repo: ${{ github.event.repository.name }}
       TF_VAR_github_owner_id: ${{ github.repository_owner_id }}
       TF_VAR_github_repo_id: ${{ github.repository_id }}
+      TF_VAR_eks_admin_principal_arns: ${{ vars.EKS_ADMIN_PRINCIPAL_ARNS || '[]' }}
+      TF_VAR_argocd_allowed_cidrs: ${{ vars.ARGOCD_ALLOWED_CIDRS }}
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v7

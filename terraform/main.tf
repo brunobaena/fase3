@@ -9,15 +9,16 @@ module "networking" {
 module "eks" {
   source = "./modules/eks"
 
-  project_name       = var.project_name
-  cluster_name       = var.eks_cluster_name
-  cluster_version    = var.eks_cluster_version
-  vpc_id             = module.networking.vpc_id
-  subnet_ids         = module.networking.public_subnet_ids
-  node_instance_type = var.eks_node_instance_type
-  node_desired       = var.eks_node_desired
-  node_min           = var.eks_node_min
-  node_max           = var.eks_node_max
+  project_name         = var.project_name
+  cluster_name         = var.eks_cluster_name
+  cluster_version      = var.eks_cluster_version
+  vpc_id               = module.networking.vpc_id
+  subnet_ids           = module.networking.public_subnet_ids
+  node_instance_type   = var.eks_node_instance_type
+  node_desired         = var.eks_node_desired
+  node_min             = var.eks_node_min
+  node_max             = var.eks_node_max
+  admin_principal_arns = var.eks_admin_principal_arns
 }
 
 module "databases" {
@@ -62,6 +63,12 @@ module "argocd" {
 
   namespace     = var.argocd_namespace
   chart_version = var.argocd_chart_version
+  project_name  = var.project_name
+  aws_region    = var.aws_region
+  repo_url      = "https://github.com/${var.github_org}/${var.github_repo}"
+  repo_username = var.github_org
+  repo_token    = var.argocd_repo_token
+  allowed_cidrs = var.argocd_allowed_cidrs
 
   depends_on = [module.eks]
 }

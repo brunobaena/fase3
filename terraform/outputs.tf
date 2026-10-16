@@ -6,8 +6,12 @@ output "argocd_port_forward_command" {
   value = module.argocd.port_forward_command
 }
 
-output "argocd_initial_password_command" {
-  value = module.argocd.initial_password_command
+output "argocd_admin_password_command" {
+  value = module.argocd.admin_password_command
+}
+
+output "eks_update_kubeconfig_command" {
+  value = "aws eks update-kubeconfig --region ${var.aws_region} --name ${module.eks.cluster_name}"
 }
 
 output "vpc_id" {
