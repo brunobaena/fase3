@@ -1,0 +1,140 @@
+# Sem "replicas": o HPA (hpa.yaml) controla a escala. Se o campo existisse aqui,
+# o selfHeal do ArgoCD voltaria o Deployment para 1 replica a cada scale-up.
+# A tag da imagem e atualizada pelo pipeline (.github/workflows/microservice-ci.yml).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: evaluation-service
+  namespace: evaluation
+  labels:
+    app: evaluation-service
+    version: "1.0.0"
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: evaluation-service
+  template:
+    metadata:
+      labels:
+        app: evaluation-service
+        version: "1.0.0"
+    spec:
+      serviceAccountName: evaluation-service-sa
+      volumes:
+        - name: service-secrets
+          emptyDir: {}
+      # Emite uma chave de servico no auth-service (POST /admin/keys) e grava em
+      # /etc/service-secrets/service_api_key para o container principal.
+      initContainers:
+        - name: fetch-service-api-key
+          image: alpine:3.20
+          env:
+            - name: MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: evaluation-service-secret
+                  key: MASTER_KEY
+          volumeMounts:
+            - name: service-secrets
+              mountPath: /etc/service-secrets
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              echo "Instalando dependencias (curl, jq)..."
+              apk add --no-cache curl jq > /dev/null 2>&1
+
+              echo "Aguardando auth-service ficar pronto..."
+              until curl -sf http://auth-service.auth.svc.cluster.local:8001/health > /dev/null 2>&1; do
+                echo "   auth-service ainda nao esta pronto. Aguardando 5s..."
+                sleep 5
+              done
+
+              KEY_NAME="evaluation-service-key-$(date +%s)"
+              echo "Criando chave de servico ($KEY_NAME)..."
+              RESPONSE=$(curl -sf -X POST \
+                http://auth-service.auth.svc.cluster.local:8001/admin/keys \
+                -H "Authorization: Bearer $MASTER_KEY" \
+                -H "Content-Type: application/json" \
+                -d "{\"name\": \"$KEY_NAME\"}")
+
+              SERVICE_KEY=$(echo "$RESPONSE" | jq -r '.key // empty')
+              if [ -z "$SERVICE_KEY" ]; then
+                echo "Falha ao criar chave. Resposta do auth-service: $RESPONSE"
+                exit 1
+              fi
+
+              echo -n "$SERVICE_KEY" > /etc/service-secrets/service_api_key
+              echo "SERVICE_API_KEY gravada em /etc/service-secrets/service_api_key"
+      containers:
+        - name: evaluation-service
+          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/evaluation-service:sha-90aa102e1912ddce97f3d51a6ba42555a3442dfe
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8004
+              protocol: TCP
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              export SERVICE_API_KEY=$(cat /etc/service-secrets/service_api_key)
+              exec ./evaluation-service
+          volumeMounts:
+            - name: service-secrets
+              mountPath: /etc/service-secrets
+              readOnly: true
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: evaluation-service-config
+                  key: PORT
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: evaluation-service-config
+                  key: AWS_REGION
+            - name: AWS_SQS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: evaluation-service-config
+                  key: AWS_SQS_URL
+            - name: FLAG_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: evaluation-service-config
+                  key: FLAG_SERVICE_URL
+            - name: TARGETING_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: evaluation-service-config
+                  key: TARGETING_SERVICE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: evaluation-service-secret
+                  key: REDIS_URL
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+            successThreshold: 1
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 3
+      restartPolicy: Always

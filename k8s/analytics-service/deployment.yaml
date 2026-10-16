@@ -1,0 +1,73 @@
+# Sem "replicas": o KEDA (keda-scaledobject.yaml) escala de 0 a 5. Se o campo existisse
+# aqui, o selfHeal do ArgoCD religaria 1 replica toda vez que o KEDA zerasse o Deployment.
+# A tag da imagem e atualizada pelo pipeline (.github/workflows/microservice-ci.yml).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+  namespace: analytics
+  labels:
+    app: analytics-service
+    version: "1.0.0"
+spec:
+  selector:
+    matchLabels:
+      app: analytics-service
+  template:
+    metadata:
+      labels:
+        app: analytics-service
+        version: "1.0.0"
+    spec:
+      serviceAccountName: analytics-service-sa
+      containers:
+        - name: analytics-service
+          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/analytics-service:sha-90aa102e1912ddce97f3d51a6ba42555a3442dfe
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8005
+              protocol: TCP
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-service-config
+                  key: PORT
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-service-config
+                  key: AWS_REGION
+            - name: AWS_DYNAMODB_TABLE
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-service-config
+                  key: AWS_DYNAMODB_TABLE
+            - name: AWS_SQS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: analytics-service-config
+                  key: AWS_SQS_URL
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8005
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+            successThreshold: 1
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8005
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 3
+      restartPolicy: Always

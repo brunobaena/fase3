@@ -1,0 +1,49 @@
+# Cria o schema no RDS recem-criado pelo Terraform. Roda a cada sync (hook Sync) e e idempotente.
+# Espera o Secret "targeting-service-secret" (ExternalSecret): enquanto ele nao existe o pod fica
+# em CreateContainerConfigError e inicia sozinho assim que o ESO sincroniza.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: targeting-service-db-init
+  namespace: targeting
+  labels:
+    app: targeting-service
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      labels:
+        app: targeting-service-db-init
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: psql
+          image: postgres:16-alpine
+          command: ["sh", "-c"]
+          args:
+            - psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f /sql/init.sql
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: targeting-service-secret
+                  key: DATABASE_URL
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+              readOnly: true
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+      volumes:
+        - name: sql
+          configMap:
+            name: targeting-service-db-init

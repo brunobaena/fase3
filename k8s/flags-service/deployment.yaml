@@ -1,0 +1,66 @@
+# A tag da imagem e atualizada pelo pipeline (.github/workflows/microservice-ci.yml).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flags-service
+  namespace: flags
+  labels:
+    app: flags-service
+    version: "1.0.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flags-service
+  template:
+    metadata:
+      labels:
+        app: flags-service
+        version: "1.0.0"
+    spec:
+      containers:
+        - name: flags-service
+          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/flags-service:sha-90aa102e1912ddce97f3d51a6ba42555a3442dfe
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8002
+              protocol: TCP
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: flags-service-config
+                  key: PORT
+            - name: AUTH_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: flags-service-config
+                  key: AUTH_SERVICE_URL
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: flags-service-secret
+                  key: DATABASE_URL
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+            successThreshold: 1
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 3
+      restartPolicy: Always

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flags-service-config
+  namespace: flags
+  labels:
+    app: flags-service
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+data:
+  PORT: "8002"
+  AUTH_SERVICE_URL: "http://auth-service.auth.svc.cluster.local:8001"

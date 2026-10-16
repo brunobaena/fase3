@@ -1,0 +1,10 @@
+# O KEDA Operator autentica na AWS pela propria IRSA (role KEDA-SQS-Role, criada em
+# terraform/modules/eks/irsa.tf e anotada no ServiceAccount keda-operator pelo modulo keda).
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-sqs-trigger-auth
+  namespace: analytics
+spec:
+  podIdentity:
+    provider: aws

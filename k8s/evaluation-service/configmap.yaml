@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: evaluation-service-config
+  namespace: evaluation
+  labels:
+    app: evaluation-service
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+data:
+  PORT: "8004"
+  AWS_REGION: "us-east-2"
+  AWS_SQS_URL: "https://sqs.us-east-2.amazonaws.com/997739472885/toogle-master-queue"
+  FLAG_SERVICE_URL: "http://flags-service.flags.svc.cluster.local:8002"
+  TARGETING_SERVICE_URL: "http://targeting-service.targeting.svc.cluster.local:8003"

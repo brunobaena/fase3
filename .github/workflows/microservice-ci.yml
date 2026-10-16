@@ -168,7 +168,7 @@ jobs:
 
       - name: Update Kubernetes manifest and push to main
         env:
-          MANIFEST: k8s/${{ inputs.service }}.yaml
+          MANIFEST: k8s/${{ inputs.service }}/deployment.yaml
           ECR_REPOSITORY: ${{ inputs.ecr-repository }}
         run: |
           set -euo pipefail

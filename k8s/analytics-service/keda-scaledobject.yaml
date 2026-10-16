@@ -1,0 +1,27 @@
+# Escala o analytics-service pelo tamanho da fila SQS:
+#   fila vazia -> 0 pods | +1 pod a cada 5 mensagens | maximo 5 | volta a 0 apos 300s sem mensagens
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: analytics-sqs-scaledobject
+  namespace: analytics
+  labels:
+    app: analytics-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: analytics-service
+  minReplicaCount: 0
+  maxReplicaCount: 5
+  pollingInterval: 30
+  cooldownPeriod: 300
+  triggers:
+    - type: aws-sqs-queue
+      authenticationRef:
+        name: keda-sqs-trigger-auth
+      metadata:
+        queueURL: "https://sqs.us-east-2.amazonaws.com/997739472885/toogle-master-queue"
+        queueLength: "5"
+        awsRegion: "us-east-2"
+        identityOwner: operator
