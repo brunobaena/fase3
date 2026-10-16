@@ -153,26 +153,6 @@ jobs:
         working-directory: ${{ env.WORKING_DIR }}
         run: terraform validate
 
-      - name: 🔎 Importar OIDC Provider existente (se necessario)
-        working-directory: ${{ env.WORKING_DIR }}
-        run: |
-          set -e
-          PROVIDER_ARN=$(aws iam list-open-id-connect-providers \
-            --query "OpenIDConnectProviderList[?contains(Arn, 'token.actions.githubusercontent.com')].Arn" \
-            --output text)
-
-          if [ -n "$PROVIDER_ARN" ] && [ "$PROVIDER_ARN" != "None" ]; then
-            echo "OIDC provider ja existe na conta AWS: $PROVIDER_ARN"
-            if terraform state list 2>/dev/null | grep -qx 'module.github_actions_oidc.aws_iam_openid_connect_provider.github_actions'; then
-              echo "Ja esta presente no state do Terraform, nada a fazer."
-            else
-              echo "Nao esta no state ainda. Importando..."
-              terraform import 'module.github_actions_oidc.aws_iam_openid_connect_provider.github_actions' "$PROVIDER_ARN"
-            fi
-          else
-            echo "OIDC provider ainda nao existe. O Terraform ira cria-lo no apply."
-          fi
-
       - name: 📋 Plan
         working-directory: ${{ env.WORKING_DIR }}
         run: terraform plan -out=tfplan
