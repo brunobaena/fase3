@@ -64,27 +64,50 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TERRAFORM }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: 🔎 Verificar se o bucket do backend ja existe
+        id: bucket
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          BUCKET="togglemaster-terraform-state-${ACCOUNT_ID}"
+          RC=0
+          OUT=$(aws s3api head-bucket --bucket "$BUCKET" 2>&1) || RC=$?
+          if [ "$RC" -eq 0 ]; then
+            echo "Bucket $BUCKET ja existe. Pulando bootstrap."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          elif echo "$OUT" | grep -qE "404|Not Found|NoSuchBucket"; then
+            echo "Bucket $BUCKET nao existe. Bootstrap sera executado."
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Falha ao verificar o bucket $BUCKET: $OUT"
+            exit 1
+          fi
+
       - name: 🎯 Format Check
         working-directory: ${{ env.BOOTSTRAP_DIR }}
         run: terraform fmt -check -recursive
 
       - name: ⚙️ Init
+        if: steps.bucket.outputs.exists == 'false'
         working-directory: ${{ env.BOOTSTRAP_DIR }}
         run: terraform init
 
       - name: ✅ Validate
+        if: steps.bucket.outputs.exists == 'false'
         working-directory: ${{ env.BOOTSTRAP_DIR }}
         run: terraform validate
 
       - name: 📋 Plan
+        if: steps.bucket.outputs.exists == 'false'
         working-directory: ${{ env.BOOTSTRAP_DIR }}
         run: terraform plan -out=tfplan
 
       - name: 🚀 Apply
+        if: steps.bucket.outputs.exists == 'false'
         working-directory: ${{ env.BOOTSTRAP_DIR }}
         run: terraform apply -auto-approve tfplan
 
       - name: 📊 Output
+        if: steps.bucket.outputs.exists == 'false'
         working-directory: ${{ env.BOOTSTRAP_DIR }}
         run: terraform output
 
