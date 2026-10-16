@@ -86,6 +86,7 @@ resource "aws_db_instance" "auth" {
   multi_az                    = false
   backup_retention_period     = 1
   skip_final_snapshot         = true
+  apply_immediately           = true
 
   tags = {
     Name    = "auth-db"
@@ -109,6 +110,7 @@ resource "aws_db_instance" "flags" {
   multi_az                    = false
   backup_retention_period     = 1
   skip_final_snapshot         = true
+  apply_immediately           = true
 
   tags = {
     Name    = "flags-db"
@@ -132,6 +134,7 @@ resource "aws_db_instance" "targeting" {
   multi_az                    = false
   backup_retention_period     = 1
   skip_final_snapshot         = true
+  apply_immediately           = true
 
   tags = {
     Name    = "targeting-db"
@@ -153,19 +156,14 @@ resource "aws_elasticache_cluster" "redis" {
   }
 }
 
+# Chave primaria alinhada ao analytics-service (app.py grava o item com "event_id" como chave).
 resource "aws_dynamodb_table" "analytics" {
   name         = "ToggleMasterAnalytics"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "PK"
-  range_key    = "SK"
+  hash_key     = "event_id"
 
   attribute {
-    name = "PK"
-    type = "S"
-  }
-
-  attribute {
-    name = "SK"
+    name = "event_id"
     type = "S"
   }
 

@@ -1,0 +1,64 @@
+
+# ApplicationSet: cria uma Application do ArgoCD para cada pasta de k8s/
+# (k8s/platform, k8s/auth-service, k8s/flags-service, ...).
+# Para publicar um novo servico basta criar uma pasta nova em k8s/.
+# Aplicado pela Application "togglemaster-bootstrap" criada pelo Terraform (modules/argocd).
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: togglemaster
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/brunobaena/fase3
+        revision: main
+        directories:
+          - path: k8s/*
+  template:
+    metadata:
+      name: '{{ .path.basename }}'
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/brunobaena/fase3
+        targetRevision: main
+        path: '{{ .path.path }}'
+      destination:
+        server: https://kubernetes.default.svc
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          # CRDs (External Secrets, KEDA) sao instaladas pelo Terraform em paralelo ao ArgoCD.
+          - SkipDryRunOnMissingResource=true
+          - RespectIgnoreDifferences=true
+        retry:
+          limit: 20
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 5m
+      # O ESO preenche valores default em remoteRef/extract e o ArgoCD mostraria OutOfSync permanente.
+      ignoreDifferences:
+        - group: external-secrets.io
+          kind: ExternalSecret
+          jqPathExpressions:
+            - '.spec.data[]?.remoteRef.conversionStrategy'
+            - '.spec.data[]?.remoteRef.decodingStrategy'
+            - '.spec.data[]?.remoteRef.metadataPolicy'
+            - '.spec.dataFrom[]?.extract.conversionStrategy'
+            - '.spec.dataFrom[]?.extract.decodingStrategy'
+            - '.spec.dataFrom[]?.extract.metadataPolicy'
+            - '.spec.dataFrom[]?.find.conversionStrategy'
+            - '.spec.dataFrom[]?.find.decodingStrategy'
+        # O Reloader (estrategia annotations) marca o pod template ao reiniciar apos rotacao de senha.
+        - group: apps
+          kind: Deployment
+          jsonPointers:
+            - /spec/template/metadata/annotations/reloader.stakater.com~1last-reloaded-from

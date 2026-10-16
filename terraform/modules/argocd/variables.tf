@@ -44,10 +44,10 @@ variable "repo_revision" {
   default     = "main"
 }
 
-variable "manifests_path" {
-  description = "Pasta do repositorio com os manifests Kubernetes"
+variable "bootstrap_path" {
+  description = "Pasta do repositorio com o ApplicationSet (gera uma Application por pasta de k8s/)"
   type        = string
-  default     = "k8s"
+  default     = "argocd"
 }
 
 variable "repo_username" {

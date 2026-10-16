@@ -82,3 +82,13 @@ output "github_actions_role_arn" {
   description = "ARN a ser configurado no secret AWS_ROLE_TO_ASSUME do GitHub Actions"
   value       = module.github_actions_oidc.role_arn
 }
+
+output "ingress_hostname_command" {
+  description = "Mostra o hostname publico (NLB) das APIs"
+  value       = module.ingress_nginx.hostname_command
+}
+
+output "auth_master_key_command" {
+  description = "Le a MASTER_KEY do auth-service (usada em teste-e2e.sh --master-key)"
+  value       = "aws secretsmanager get-secret-value --secret-id ${module.databases.auth_master_key_secret_name} --region ${var.aws_region} --query SecretString --output text"
+}

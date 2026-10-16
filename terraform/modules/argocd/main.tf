@@ -92,7 +92,8 @@ resource "helm_release" "argocd" {
   })]
 }
 
-# --- Application (GitOps): o ArgoCD passa a observar o repositorio sem nenhum passo manual ---
+# --- Bootstrap (GitOps): uma unica Application que aplica argocd/applicationset.yaml do repositorio ---
+# O ApplicationSet gera uma Application por pasta de k8s/ (platform, auth-service, ...).
 # Instalada pelo chart oficial argocd-apps, depois que os CRDs do ArgoCD ja existem.
 resource "helm_release" "argocd_apps" {
   name       = "argocd-apps"
@@ -108,27 +109,24 @@ resource "helm_release" "argocd_apps" {
 
   values = [yamlencode({
     applications = {
-      (var.application_name) = {
+      "${var.application_name}-bootstrap" = {
         namespace  = helm_release.argocd.namespace
         finalizers = ["resources-finalizer.argocd.argoproj.io"]
         project    = "default"
         source = {
           repoURL        = var.repo_url
           targetRevision = var.repo_revision
-          path           = var.manifests_path
-          directory = {
-            recurse = true
-          }
+          path           = var.bootstrap_path
         }
         destination = {
-          server = "https://kubernetes.default.svc"
+          server    = "https://kubernetes.default.svc"
+          namespace = helm_release.argocd.namespace
         }
         syncPolicy = {
           automated = {
             prune    = true
             selfHeal = true
           }
-          syncOptions = ["CreateNamespace=true"]
         }
       }
     }

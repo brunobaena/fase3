@@ -88,3 +88,15 @@ module "keda" {
 
   depends_on = [module.eks]
 }
+
+module "ingress_nginx" {
+  source = "./modules/ingress-nginx"
+
+  depends_on = [module.eks]
+}
+
+module "reloader" {
+  source = "./modules/reloader"
+
+  depends_on = [module.eks]
+}

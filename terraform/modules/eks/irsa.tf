@@ -28,11 +28,24 @@ resource "aws_iam_policy" "eso" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret", "secretsmanager:ListSecrets"]
-      Resource = "arn:aws:secretsmanager:us-east-2:${local.account_id}:secret:*"
-    }]
+    Statement = [
+      {
+        # ListSecrets e BatchGetSecretValue nao suportam restricao por recurso.
+        Sid      = "ListAndBatchGet"
+        Effect   = "Allow"
+        Action   = ["secretsmanager:ListSecrets", "secretsmanager:BatchGetSecretValue"]
+        Resource = "*"
+      },
+      {
+        Sid    = "ReadAppAndRdsSecrets"
+        Effect = "Allow"
+        Action = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
+        Resource = [
+          "arn:aws:secretsmanager:us-east-2:${local.account_id}:secret:${var.project_name}/apps/*",
+          "arn:aws:secretsmanager:us-east-2:${local.account_id}:secret:rds!db-*",
+        ]
+      }
+    ]
   })
 }
 
