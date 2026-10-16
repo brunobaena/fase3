@@ -97,7 +97,7 @@ spec:
 
       containers:
         - name: targeting-service
-          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/targeting-service:1.0
+          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/targeting-service:sha-90aa102e1912ddce97f3d51a6ba42555a3442dfe
           imagePullPolicy: Always
           ports:
             - containerPort: 8003
