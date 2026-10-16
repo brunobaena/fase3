@@ -7,7 +7,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
@@ -17,4 +17,6 @@ jobs:
       service: targeting-service
       ecr-repository: fiap/targeting-service
       sonar-project-key: brunobaena-targeting-service
-    secrets: inherit
+    secrets:
+      AWS_ROLE_ECR_PUSH: ${{ secrets.AWS_ROLE_ECR_PUSH }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

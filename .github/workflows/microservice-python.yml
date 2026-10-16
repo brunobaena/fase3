@@ -15,6 +15,13 @@ on:
         description: SonarCloud project key for the microservice.
         required: true
         type: string
+    secrets:
+      AWS_ROLE_ECR_PUSH:
+        description: IAM role ARN (push-only to ECR) assumed through OIDC for pushes to main.
+        required: false
+      SONAR_TOKEN:
+        description: SonarCloud token used to publish analysis.
+        required: true
 
 permissions:
   contents: read
@@ -74,6 +81,9 @@ jobs:
 
   security-and-container:
     name: Security & Container Pipeline
+    permissions:
+      contents: write
+      id-token: write
     needs:
       - build-and-test
       - lint
@@ -83,4 +93,6 @@ jobs:
       ecr-repository: ${{ inputs.ecr-repository }}
       sonar-project-key: ${{ inputs.sonar-project-key }}
       sonar-extra-args: -Dsonar.python.version=3.14
-    secrets: inherit
+    secrets:
+      AWS_ROLE_ECR_PUSH: ${{ secrets.AWS_ROLE_ECR_PUSH }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
