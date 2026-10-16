@@ -21,6 +21,9 @@ spec:
         app: targeting-service
         version: "1.0.0"
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: targeting-service
           image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/targeting-service:sha-90aa102e1912ddce97f3d51a6ba42555a3442dfe
@@ -44,6 +47,13 @@ spec:
                 secretKeyRef:
                   name: targeting-service-secret
                   key: DATABASE_URL
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           resources:
             requests:
               cpu: "100m"

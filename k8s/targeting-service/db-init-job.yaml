@@ -19,10 +19,20 @@ spec:
       labels:
         app: targeting-service-db-init
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       restartPolicy: OnFailure
       containers:
         - name: psql
           image: postgres:16-alpine
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 70
+            runAsGroup: 70
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           command: ["sh", "-c"]
           args:
             - psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f /sql/init.sql

@@ -77,6 +77,7 @@ resource "aws_db_instance" "auth" {
   instance_class              = var.rds_instance_class
   allocated_storage           = var.rds_allocated_storage
   storage_type                = "gp3"
+  storage_encrypted           = true
   db_name                     = "postgres"
   username                    = "postgres"
   manage_master_user_password = true
@@ -101,6 +102,7 @@ resource "aws_db_instance" "flags" {
   instance_class              = var.rds_instance_class
   allocated_storage           = var.rds_allocated_storage
   storage_type                = "gp3"
+  storage_encrypted           = true
   db_name                     = "postgres"
   username                    = "postgres"
   manage_master_user_password = true
@@ -125,6 +127,7 @@ resource "aws_db_instance" "targeting" {
   instance_class              = var.rds_instance_class
   allocated_storage           = var.rds_allocated_storage
   storage_type                = "gp3"
+  storage_encrypted           = true
   db_name                     = "postgres"
   username                    = "postgres"
   manage_master_user_password = true
