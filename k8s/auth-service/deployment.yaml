@@ -26,7 +26,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: auth-service
-          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/auth-service:sha-90aa102e1912ddce97f3d51a6ba42555a3442dfe
+          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/auth-service:sha-f32b257e7e5851f3cf2f68634ff849600977a9e7
           imagePullPolicy: Always
           ports:
             - containerPort: 8001
