@@ -1,12 +1,4 @@
 # --- Acesso administrativo ao cluster via EKS Access Entries ---
-# O cluster e criado pela role do GitHub Actions, que e a unica admin por padrao.
-# Os principals listados aqui (usuarios ou roles IAM) tambem recebem admin do cluster,
-# sem nenhum comando manual depois de recriar o cluster.
-variable "admin_principal_arns" {
-  description = "ARNs IAM (user ou role) com acesso de administrador ao cluster EKS"
-  type        = list(string)
-  default     = []
-}
 
 resource "aws_eks_access_entry" "admin" {
   for_each = toset(var.admin_principal_arns)
@@ -25,5 +17,22 @@ resource "aws_eks_access_policy_association" "admin" {
 
   access_scope {
     type = "cluster"
+  }
+}
+
+# A API EKS pode confirmar a associacao antes de a autorizacao Kubernetes
+# propagar. Os modulos Helm dependem do modulo EKS completo, incluindo esta espera.
+resource "time_sleep" "access_propagation" {
+  depends_on = [aws_eks_access_policy_association.admin]
+
+  create_duration = "30s"
+
+  triggers = {
+    associations = jsonencode({
+      for arn, association in aws_eks_access_policy_association.admin : arn => {
+        associated_at = association.associated_at
+        modified_at   = association.modified_at
+      }
+    })
   }
 }

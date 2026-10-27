@@ -2,6 +2,16 @@ output "namespace" {
   value = helm_release.argocd.namespace
 }
 
+output "hostname" {
+  description = "Hostname publico do load balancer do ArgoCD"
+  value       = data.kubernetes_service_v1.argocd_server.status[0].load_balancer[0].ingress[0].hostname
+}
+
+output "url" {
+  description = "URL HTTPS do ArgoCD pelo load balancer"
+  value       = "https://${data.kubernetes_service_v1.argocd_server.status[0].load_balancer[0].ingress[0].hostname}"
+}
+
 output "port_forward_command" {
   description = "Execute e acesse https://localhost:8080"
   value       = "kubectl -n ${helm_release.argocd.namespace} port-forward svc/argocd-server 8080:443"

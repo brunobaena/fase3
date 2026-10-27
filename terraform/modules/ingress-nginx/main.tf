@@ -1,12 +1,3 @@
-terraform {
-  required_providers {
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 3.0"
-    }
-  }
-}
-
 # Controller exigido pelos Ingress em k8s/ (ingressClassName: nginx e anotacoes nginx.ingress.kubernetes.io/*).
 # Atencao: o projeto ingress-nginx foi aposentado em marco/2026 (sem novas correcoes de seguranca).
 resource "helm_release" "ingress_nginx" {

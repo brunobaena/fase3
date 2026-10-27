@@ -1,33 +1,3 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 3.0"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.0"
-    }
-  }
-}
-
-locals {
-  # Credencial do repositorio: so e criada quando repo_token e informado (repositorio privado).
-  repositories = {
-    for name in [var.application_name] : name => {
-      url      = var.repo_url
-      name     = var.application_name
-      type     = "git"
-      username = var.repo_username
-      password = var.repo_token
-    } if var.repo_token != ""
-  }
-}
-
 # --- Senha do admin: gerada pelo Terraform e guardada no Secrets Manager ---
 resource "random_password" "admin" {
   length  = 24

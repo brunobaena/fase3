@@ -1,16 +1,3 @@
-data "aws_caller_identity" "current" {}
-
-# --- OIDC Provider do GitHub Actions ---
-data "aws_iam_openid_connect_provider" "github_actions" {
-  url = "https://token.actions.githubusercontent.com"
-}
-
-locals {
-  github_sub_legacy   = "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/main"
-  github_sub_by_id    = var.github_owner_id != "" && var.github_repo_id != "" ? "repo:${var.github_org}@${var.github_owner_id}/${var.github_repo}@${var.github_repo_id}:ref:refs/heads/main" : ""
-  github_sub_patterns = compact([local.github_sub_legacy, local.github_sub_by_id])
-}
-
 # --- IAM Role assumida pelo workflow via OIDC ---
 resource "aws_iam_role" "github_actions" {
   name = "${var.project_name}-github-actions-role"

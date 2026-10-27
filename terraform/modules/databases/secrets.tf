@@ -6,16 +6,6 @@
 # em nomes estaveis (togglemaster/apps/...) que sobrevivem a destroy/rebuild.
 # recovery_window_in_days = 0 evita conflito de nome ao recriar o ambiente.
 
-locals {
-  db_names = toset(["auth", "flags", "targeting"])
-
-  db_instances = {
-    auth      = aws_db_instance.auth
-    flags     = aws_db_instance.flags
-    targeting = aws_db_instance.targeting
-  }
-}
-
 resource "aws_secretsmanager_secret" "db" {
   for_each = local.db_names
 

@@ -18,7 +18,7 @@ module "eks" {
   node_desired         = var.eks_node_desired
   node_min             = var.eks_node_min
   node_max             = var.eks_node_max
-  admin_principal_arns = var.eks_admin_principal_arns
+  admin_principal_arns = local.eks_admin_principal_arns
 }
 
 module "databases" {

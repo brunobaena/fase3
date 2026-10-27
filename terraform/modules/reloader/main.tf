@@ -1,12 +1,3 @@
-terraform {
-  required_providers {
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 3.0"
-    }
-  }
-}
-
 # Reinicia os Deployments quando um Secret/ConfigMap referenciado muda (ex.: rotacao da senha do RDS
 # propagada pelo External Secrets). Estrategia "annotations" porque o padrao (env-vars) injeta uma
 # variavel no pod que o ArgoCD enxerga como drift e reverte com selfHeal.

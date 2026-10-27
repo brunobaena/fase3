@@ -34,3 +34,9 @@ variable "node_min" {
 variable "node_max" {
   type = number
 }
+
+variable "admin_principal_arns" {
+  description = "ARNs IAM (user ou role) com acesso de administrador ao cluster EKS"
+  type        = list(string)
+  default     = []
+}

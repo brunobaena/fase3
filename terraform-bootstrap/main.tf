@@ -1,27 +1,3 @@
-terraform {
-  required_version = ">= 1.10.0"
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
-provider "aws" {
-  region = var.aws_region
-}
-
-data "aws_caller_identity" "current" {}
-
-locals {
-  # Nomes de bucket S3 sao unicos globalmente entre TODAS as contas AWS,
-  # por isso o account id e usado como sufixo para evitar colisao com
-  # buckets de mesmo nome criados por outras contas.
-  bucket_name = "${var.bucket_name}-${data.aws_caller_identity.current.account_id}"
-}
-
 resource "aws_s3_bucket" "tfstate" {
   bucket = local.bucket_name
 

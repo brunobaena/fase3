@@ -22,13 +22,13 @@ concurrency:
 jobs:
   bootstrap-iam:
     name: 🔐 Criar OIDC Provider + AWS_ROLE_TERRAFORM
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v7
 
       - name: 🔧 Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
@@ -90,7 +90,12 @@ jobs:
 
       - name: 📋 Plan
         working-directory: ${{ env.WORKING_DIR }}
-        run: terraform plan -out=tfplan
+        run: |
+          terraform plan -out=tfplan \
+            -var="github_org=$TF_VAR_github_org" \
+            -var="github_repo=$TF_VAR_github_repo" \
+            -var="github_owner_id=$TF_VAR_github_owner_id" \
+            -var="github_repo_id=$TF_VAR_github_repo_id"
 
       - name: 🚀 Apply
         working-directory: ${{ env.WORKING_DIR }}

@@ -2,6 +2,27 @@ output "argocd_namespace" {
   value = module.argocd.namespace
 }
 
+output "argocd_url" {
+  description = "URL HTTPS do ArgoCD pelo seu load balancer"
+  value       = module.argocd.url
+}
+
+output "ingress_hostname" {
+  description = "Hostname publico do load balancer compartilhado pelas APIs"
+  value       = module.ingress_nginx.hostname
+}
+
+output "service_urls" {
+  description = "URLs HTTP dos servicos pelo load balancer do ingress-nginx"
+  value = {
+    auth_service       = "${module.ingress_nginx.url}/auth"
+    flags_service      = "${module.ingress_nginx.url}/flags"
+    targeting_service  = "${module.ingress_nginx.url}/targeting"
+    evaluation_service = "${module.ingress_nginx.url}/evaluation"
+    analytics_service  = "${module.ingress_nginx.url}/analytics"
+  }
+}
+
 output "argocd_port_forward_command" {
   value = module.argocd.port_forward_command
 }

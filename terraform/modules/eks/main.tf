@@ -1,5 +1,3 @@
-data "aws_caller_identity" "current" {}
-
 # --- IAM Role do Cluster EKS ---
 resource "aws_iam_role" "eks_cluster" {
   name = "${var.project_name}-eks-cluster-role"
@@ -26,10 +24,13 @@ resource "aws_iam_role_policy_attachment" "eks_vpc_controller" {
 
 # --- Cluster EKS (nas subnets publicas, sem NAT) ---
 resource "aws_eks_cluster" "main" {
-  name                = var.cluster_name
-  version             = var.cluster_version
-  role_arn            = aws_iam_role.eks_cluster.arn
-  authentication_mode = "API_AND_CONFIG_MAP"
+  name     = var.cluster_name
+  version  = var.cluster_version
+  role_arn = aws_iam_role.eks_cluster.arn
+
+  access_config {
+    authentication_mode = "API_AND_CONFIG_MAP"
+  }
 
   vpc_config {
     subnet_ids              = var.subnet_ids
@@ -44,10 +45,6 @@ resource "aws_eks_cluster" "main" {
 }
 
 # --- OIDC Provider (necessario para IRSA) ---
-data "tls_certificate" "eks" {
-  url = aws_eks_cluster.main.identity[0].oidc[0].issuer
-}
-
 resource "aws_iam_openid_connect_provider" "eks" {
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]

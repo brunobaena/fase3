@@ -57,6 +57,7 @@ jobs:
             -Dsonar.branch.name=master
             ${{ inputs.sonar-extra-args }}
             -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300
 
       - name: Run Trivy dependency scan (SCA)
         uses: aquasecurity/trivy-action@v0.36.0
@@ -66,6 +67,7 @@ jobs:
           scanners: vuln
           severity: CRITICAL
           exit-code: "1"
+          ignore-unfixed: "false"
 
   docker-build:
     name: Docker Build
@@ -121,6 +123,7 @@ jobs:
           scanners: vuln
           severity: CRITICAL
           exit-code: "1"
+          ignore-unfixed: "false"
 
   ecr-push:
     name: ECR Push & Manifest Update
