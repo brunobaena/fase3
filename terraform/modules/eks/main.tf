@@ -26,9 +26,10 @@ resource "aws_iam_role_policy_attachment" "eks_vpc_controller" {
 
 # --- Cluster EKS (nas subnets publicas, sem NAT) ---
 resource "aws_eks_cluster" "main" {
-  name     = var.cluster_name
-  version  = var.cluster_version
-  role_arn = aws_iam_role.eks_cluster.arn
+  name                = var.cluster_name
+  version             = var.cluster_version
+  role_arn            = aws_iam_role.eks_cluster.arn
+  authentication_mode = "API_AND_CONFIG_MAP"
 
   vpc_config {
     subnet_ids              = var.subnet_ids
