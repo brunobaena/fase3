@@ -26,7 +26,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: targeting-service
-          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/targeting-service:sha-de2b2f7fcb1a0935a5e21e94d90ffdf6d2d9dce0
+          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/targeting-service:sha-d9bda204f5139e62ab5520c8f0365f6cc9060bb2
           imagePullPolicy: Always
           ports:
             - containerPort: 8003
