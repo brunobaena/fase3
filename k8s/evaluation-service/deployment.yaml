@@ -76,7 +76,7 @@ spec:
               echo "SERVICE_API_KEY gravada em /etc/service-secrets/service_api_key"
       containers:
         - name: evaluation-service
-          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/evaluation-service:sha-f32b257e7e5851f3cf2f68634ff849600977a9e7
+          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/evaluation-service:sha-46c3b93e6a6c4a350667bdf74cfc36132db8fca8
           imagePullPolicy: Always
           ports:
             - containerPort: 8004
