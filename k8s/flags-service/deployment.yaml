@@ -26,7 +26,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: flags-service
-          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/flags-service:sha-46c3b93e6a6c4a350667bdf74cfc36132db8fca8
+          image: 997739472885.dkr.ecr.us-east-2.amazonaws.com/fiap/flags-service:sha-de2b2f7fcb1a0935a5e21e94d90ffdf6d2d9dce0
           imagePullPolicy: Always
           ports:
             - containerPort: 8002
