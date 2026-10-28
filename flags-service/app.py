@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 from functools import wraps
-from pathlib import Path  # Import nao utilizado: falha intencional de lint (F401).
 
 import psycopg2
 import requests
